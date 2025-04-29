@@ -126,6 +126,8 @@ dependencies {
     implementation fileTree(dir: jsJarDirectory, include: ["opensearch-job-scheduler-${opensearch_build}.jar"])
     implementation fileTree(dir: adJarDirectory, include: ["opensearch-anomaly-detection-${opensearch_build}.jar"])
     implementation fileTree(dir: sqlJarDirectory, include: ["opensearch-sql-${opensearch_build}.jar", "ppl-${opensearch_build}.jar", "protocol-${opensearch_build}.jar"])
+    implementation group: 'net.sourceforge.csvjdbc', name: 'csvjdbc', version: '1.0.43'
+
     compileOnly "org.opensearch:common-utils:${opensearch_build}"
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
@@ -401,10 +403,10 @@ integTest {
 testClusters.integTest {
     testDistribution = "ARCHIVE"
 
-    // Optionally install security
+     //Optionally install security
     if (System.getProperty("security.enabled") != null) {
-         configurations.secureIntegTestPluginArchive.asFileTree.each {
-            if(it.name.contains("opensearch-security")){
+        configurations.secureIntegTestPluginArchive.asFileTree.each {
+            if (it.name.contains("opensearch-security")) {
                 plugin(provider(new Callable<RegularFile>() {
                     @Override
                     RegularFile call() throws Exception {
@@ -430,7 +432,7 @@ testClusters.integTest {
         }
 
         // Config below including files are copied from security demo configuration
-        ['esnode.pem', 'esnode-key.pem', 'root-ca.pem','kirk.pem','kirk-key.pem'].forEach { file ->
+        ['esnode.pem', 'esnode-key.pem', 'root-ca.pem', 'kirk.pem', 'kirk-key.pem'].forEach { file ->
             File local = Paths.get(opensearch_tmp_dir.absolutePath, file).toFile()
             download.run {
                 src "https://raw.githubusercontent.com/opensearch-project/security/main/bwc-test/src/test/resources/security/" + file
@@ -457,7 +459,6 @@ testClusters.integTest {
         setting("plugins.security.allow_unsafe_democertificates", "true")
         setting("plugins.security.allow_default_init_securityindex", "true")
         setting("plugins.security.unsupported.inject_user.enabled", "true")
-
         setting("plugins.security.authcz.admin_dn", "\n- CN=kirk,OU=client,O=client,L=test, C=de")
         setting('plugins.security.restapi.roles_enabled', '["all_access", "security_rest_api_access"]')
         setting('plugins.security.system_indices.enabled', "true")
@@ -491,6 +492,11 @@ testClusters.integTest {
         setSecure(true)
     }
 
+    nodes.each { node ->
+        //node.systemProperty('java.security.debug','access,failure,policy')
+        node.systemProperty('java.security.policy','file:/Users/diyam/projects/skills/src/main/plugin-metadata/plugin-security.policy')
+    }
+
     // Installs all registered zipArchive dependencies on integTest cluster nodes
     configurations.zipArchive.asFileTree.each {
         plugin(provider(new Callable<RegularFile>(){
@@ -518,7 +524,7 @@ testClusters.integTest {
     if (System.getProperty("opensearch.debug") != null) {
         def debugPort = 5005
         nodes.forEach { node ->
-            node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=*:${debugPort}")
+            node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=n,suspend=n,address=*:${debugPort}")
             debugPort += 1
         }
     }
